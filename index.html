@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Dev | Creative Frontend Developer</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        heading: ['Space Grotesk', 'sans-serif'],
+                        body: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        darkBg: '#05050A',
+                        glass: 'rgba(255, 255, 255, 0.05)',
+                        neonCyan: '#00f3ff',
+                        neonPurple: '#bc13fe',
+                        neonBlue: '#3b82f6',
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Styles & Utilities */
+        body {
+            background-color: #05050A;
+            color: #ffffff;
+            overflow-x: hidden;
+            cursor: none; /* Hide default cursor for custom one */
+        }
+
+        /* Preloader */
+        #loader {
+            position: fixed;
+            inset: 0;
+            background: #05050A;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid transparent;
+            border-top-color: #00f3ff;
+            border-bottom-color: #bc13fe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #05050A; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #bc13fe, #00f3ff); border-radius: 5px; }
+
+        /* Glassmorphism Classes */
+        .glass-card {
+            background: rgba(20, 20, 30, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Neon Glow Effects */
+        .text-gradient {
+            background: linear-gradient(to right, #00f3ff, #bc13fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glow-hover:hover {
+            box-shadow: 0 0 20px rgba(188, 19, 254, 0.4), 0 0 40px rgba(0, 243, 255, 0.2);
+            border-color: rgba(0, 243, 255, 0.5);
+        }
+
+        /* Scroll Reveal Animations */
+        .reveal {
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 0.8s ease-out;
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Animated Background Gradients */
+        .bg-blobs {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+        .blob {
+            position: absolute;
+            filter: blur(100px);
+            opacity: 0.4;
+            animation: float 10s infinite alternate ease-in-out;
+        }
+        .blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #bc13fe; }
+        .blob-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: #00f3ff; animation-delay: -5s; }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes float { 100% { transform: translate(50px, 50px) scale(1.1); } }
+        
+        /* Custom Cursor */
+        .cursor-dot, .cursor-outline {
+            position: fixed;
+            top: 0; left: 0;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            z-index: 10000;
+            pointer-events: none;
+        }
+        .cursor-dot { width: 8px; height: 8px; background-color: #00f3ff; transition: width 0.2s, height 0.2s; }
+        .cursor-outline { width: 40px; height: 40px; border: 2px solid rgba(188, 19, 254, 0.5); transition: top 0.15s ease-out, left 0.15s ease-out, width 0.2s, height 0.2s; }
+        
+        /* Interactive element hover for cursor */
+        a:hover ~ .cursor-outline, button:hover ~ .cursor-outline { width: 60px; height: 60px; border-color: #00f3ff; background: rgba(0, 243, 255, 0.1); }
+    </style>
+</head>
+<body class="font-body antialiased selection:bg-neonCyan selection:text-darkBg">
+
+    <div id="loader">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="cursor-dot" id="cursor-dot"></div>
+    <div class="cursor-outline" id="cursor-outline"></div>
+
+    <div class="bg-blobs">
+        <div class="blob blob-1 rounded-full"></div>
+        <div class="blob blob-2 rounded-full"></div>
+    </div>
+
+    <nav id="navbar" class="fixed w-full z-50 transition-all duration-300 py-4">
+        <div class="max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center">
+            <a href="#" class="font-heading text-2xl font-bold tracking-wider text-white">
+                AR <span class="text-gradient">Dev</span>
+            </a>
+            <div class="hidden md:flex gap-8 text-sm font-semibold tracking-wide">
+                <a href="#about" class="hover:text-neonCyan transition-colors">About</a>
+                <a href="#services" class="hover:text-neonCyan transition-colors">Services</a>
+                <a href="#projects" class="hover:text-neonCyan transition-colors">Projects</a>
+                <a href="#contact" class="hover:text-neonCyan transition-colors">Contact</a>
+            </div>
+            <button class="md:hidden text-white focus:outline-none text-2xl">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <section id="hero" class="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
+        <div class="text-center z-10 px-6 max-w-4xl">
+            <p class="text-neonCyan font-semibold mb-4 tracking-widest uppercase text-sm md:text-base reveal">Welcome to my universe</p>
+            <h1 class="font-heading text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight reveal" style="transition-delay: 100ms;">
+                Hi, I'm <br/><span class="text-gradient">AR Dev</span>
+            </h1>
+            <h2 class="text-xl md:text-3xl text-gray-300 mb-10 font-light reveal" style="transition-delay: 200ms;">
+                <span class="typed-text"></span>
+            </h2>
+            <div class="flex flex-col sm:flex-row gap-6 justify-center reveal" style="transition-delay: 300ms;">
+                <a href="#projects" class="px-8 py-4 rounded-full bg-gradient-to-r from-neonPurple to-neonBlue text-white font-bold hover:scale-105 transition-transform shadow-[0_0_20px_rgba(188,19,254,0.4)]">
+                    View Projects
+                </a>
+                <a href="#contact" class="px-8 py-4 rounded-full border border-white/20 glass-card hover:border-neonCyan hover:text-neonCyan transition-all">
+                    Hire Me
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="py-24 relative z-10">
+        <div class="max-w-7xl mx-auto px-6 md:px-12">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+                <div class="reveal">
+                    <h2 class="font-heading text-4xl md:text-5xl font-bold mb-6">About <span class="text-gradient">Me</span></h2>
+                    <p class="text-gray-400 text-lg leading-relaxed mb-8">
+                        I am a passionate Frontend Developer specializing in creating modern, ultra-responsive, and visually stunning web experiences. With a keen eye for design and a mastery of code, I bridge the gap between aesthetics and functionality. 
+                    </p>
+                    <div class="flex gap-4">
+                        <div class="glass-card p-4 rounded-xl text-center flex-1 glow-hover transition-all">
+                            <h3 class="text-3xl font-bold text-neonCyan mb-1">3+</h3>
+                            <p class="text-sm text-gray-400">Years Exp.</p>
+                        </div>
+                        <div class="glass-card p-4 rounded-xl text-center flex-1 glow-hover transition-all">
+                            <h3 class="text-3xl font-bold text-neonPurple mb-1">50+</h3>
+                            <p class="text-sm text-gray-400">Projects</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="glass-card p-8 rounded-2xl reveal" style="transition-delay: 200ms;">
+                    <h3 class="text-2xl font-bold mb-6 font-heading">Core Skills</h3>
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between mb-2 text-sm"><span class="font-semibold">HTML / CSS</span><span class="text-neonCyan">95%</span></div>
+                            <div class="w-full bg-gray-800 rounded-full h-2">
+                                <div class="bg-gradient-to-r from-neonCyan to-blue-500 h-2 rounded-full skill-bar" style="width: 0%" data-width="95%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-2 text-sm"><span class="font-semibold">Tailwind CSS</span><span class="text-neonPurple">90%</span></div>
+                            <div class="w-full bg-gray-800 rounded-full h-2">
+                                <div class="bg-gradient-to-r from-neonPurple to-pink-500 h-2 rounded-full skill-bar" style="width: 0%" data-width="90%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-2 text-sm"><span class="font-semibold">JavaScript (ES6+)</span><span class="text-neonCyan">85%</span></div>
+                            <div class="w-full bg-gray-800 rounded-full h-2">
+                                <div class="bg-gradient-to-r from-neonCyan to-blue-500 h-2 rounded-full skill-bar" style="width: 0%" data-width="85%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-2 text-sm"><span class="font-semibold">React.js</span><span class="text-neonPurple">80%</span></div>
+                            <div class="w-full bg-gray-800 rounded-full h-2">
+                                <div class="bg-gradient-to-r from-neonPurple to-pink-500 h-2 rounded-full skill-bar" style="width: 0%" data-width="80%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="services" class="py-24 relative z-10 bg-black/30">
+        <div class="max-w-7xl mx-auto px-6 md:px-12">
+            <div class="text-center mb-16 reveal">
+                <h2 class="font-heading text-4xl md:text-5xl font-bold mb-4">Pricing & <span class="text-gradient">Packages</span></h2>
+                <p class="text-gray-400">Choose the perfect plan for your next digital experience.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="glass-card rounded-2xl p-8 relative overflow-hidden group glow-hover transition-all duration-500 reveal">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-neonCyan/20 blur-3xl rounded-full"></div>
+                    <h3 class="text-xl text-gray-300 mb-2">Basic Web</h3>
+                    <div class="text-4xl font-bold font-heading mb-6 text-white">5000 <span class="text-lg text-neonCyan">PKR</span></div>
+                    <ul class="space-y-4 mb-8 text-gray-400 text-sm">
+                        <li><i class="fas fa-check text-neonCyan mr-2"></i> Single Page Portfolio</li>
+                        <li><i class="fas fa-check text-neonCyan mr-2"></i> HTML, CSS, JS</li>
+                        <li><i class="fas fa-check text-neonCyan mr-2"></i> Responsive Design</li>
+                        <li class="opacity-50"><i class="fas fa-times mr-2"></i> Advanced Animations</li>
+                    </ul>
+                    <button class="w-full py-3 rounded-lg border border-neonCyan text-neonCyan hover:bg-neonCyan hover:text-darkBg transition-all font-semibold">Get Started</button>
+                </div>
+
+                <div class="glass-card rounded-2xl p-8 relative overflow-hidden group glow-hover transition-all duration-500 transform md:-translate-y-4 border-neonPurple/50 reveal" style="transition-delay: 150ms;">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-neonPurple/20 blur-3xl rounded-full"></div>
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 bg-gradient-to-r from-neonPurple to-neonBlue text-xs font-bold px-3 py-1 rounded-b-lg">MOST POPULAR</div>
+                    <h3 class="text-xl text-gray-300 mb-2 mt-4">Advanced Web</h3>
+                    <div class="text-4xl font-bold font-heading mb-6 text-white">10,000 <span class="text-lg text-neonPurple">PKR</span></div>
+                    <ul class="space-y-4 mb-8 text-gray-400 text-sm">
+                        <li><i class="fas fa-check text-neonPurple mr-2"></i> Multi-page Website</li>
+                        <li><i class="fas fa-check text-neonPurple mr-2"></i> Tailwind & JS Animations</li>
+                        <li><i class="fas fa-check text-neonPurple mr-2"></i> Fully Responsive</li>
+                        <li><i class="fas fa-check text-neonPurple mr-2"></i> Contact Form Setup</li>
+                    </ul>
+                    <button class="w-full py-3 rounded-lg bg-gradient-to-r from-neonPurple to-neonBlue text-white hover:shadow-[0_0_15px_#bc13fe] transition-all font-semibold">Get Started</button>
+                </div>
+
+                <div class="glass-card rounded-2xl p-8 relative overflow-hidden group glow-hover transition-all duration-500 reveal" style="transition-delay: 300ms;">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-neonBlue/20 blur-3xl rounded-full"></div>
+                    <h3 class="text-xl text-gray-300 mb-2">Pro Web</h3>
+                    <div class="text-4xl font-bold font-heading mb-6 text-white">15,000 <span class="text-lg text-neonBlue">PKR</span></div>
+                    <ul class="space-y-4 mb-8 text-gray-400 text-sm">
+                        <li><i class="fas fa-check text-neonBlue mr-2"></i> Full Web Application</li>
+                        <li><i class="fas fa-check text-neonBlue mr-2"></i> React / Advanced Logic</li>
+                        <li><i class="fas fa-check text-neonBlue mr-2"></i> Premium UI/UX Design</li>
+                        <li><i class="fas fa-check text-neonBlue mr-2"></i> SEO Optimization</li>
+                    </ul>
+                    <button class="w-full py-3 rounded-lg border border-neonBlue text-neonBlue hover:bg-neonBlue hover:text-darkBg transition-all font-semibold">Get Started</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="projects" class="py-24 relative z-10">
+        <div class="max-w-7xl mx-auto px-6 md:px-12">
+            <div class="flex justify-between items-end mb-16 reveal">
+                <div>
+                    <h2 class="font-heading text-4xl md:text-5xl font-bold mb-4">Featured <span class="text-gradient">Projects</span></h2>
+                    <p class="text-gray-400">A selection of my recent frontend creations.</p>
+                </div>
+                <a href="https://ahmedraza1234-lab.github.io/WebDev/" target="_blank" class="hidden md:inline-flex items-center gap-2 text-neonCyan hover:text-white transition-colors">
+                    View GitHub Repo <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="glass-card rounded-xl overflow-hidden group reveal" data-tilt data-tilt-max="10" data-tilt-speed="400" data-tilt-glare="true" data-tilt-max-glare="0.2">
+                    <div class="h-48 overflow-hidden relative">
+                        <div class="absolute inset-0 bg-neonPurple/20 mix-blend-overlay z-10 group-hover:opacity-0 transition-opacity duration-500"></div>
+                        <img src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop" alt="Project 1" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                    </div>
+                    <div class="p-6 relative z-20">
+                        <h3 class="text-2xl font-bold mb-2 text-white">E-Commerce UI</h3>
+                        <p class="text-gray-400 text-sm mb-6 line-clamp-2">A modern, glassmorphism-inspired e-commerce storefront layout built with Tailwind CSS.</p>
+                        <div class="flex justify-between items-center">
+                            <a href="https://ahmedraza1234-lab.github.io/WebDev/" target="_blank" class="px-4 py-2 text-sm rounded bg-white/10 hover:bg-neonCyan hover:text-darkBg transition-colors font-semibold">Live Demo</a>
+                            <a href="https://ahmedraza1234-lab.github.io/WebDev/" target="_blank" class="text-gray-400 hover:text-white text-xl transition-colors"><i class="fab fa-github"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl overflow-hidden group reveal" data-tilt data-tilt-max="10" data-tilt-speed="400" data-tilt-glare="true" data-tilt-max-glare="0.2" style="transition-delay: 150ms;">
+                    <div class="h-48 overflow-hidden relative">
+                        <div class="absolute inset-0 bg-neonCyan/20 mix-blend-overlay z-10 group-hover:opacity-0 transition-opacity duration-500"></div>
+                        <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop" alt="Project 2" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                    </div>
+                    <div class="p-6 relative z-20">
+                        <h3 class="text-2xl font-bold mb-2 text-white">Agency Dashboard</h3>
+                        <p class="text-gray-400 text-sm mb-6 line-clamp-2">An intuitive analytics dashboard with animated charts and dark mode toggles.</p>
+                        <div class="flex justify-between items-center">
+                            <a href="https://ahmedraza1234-lab.github.io/WebDev/" target="_blank" class="px-4 py-2 text-sm rounded bg-white/10 hover:bg-neonPurple hover:text-white transition-colors font-semibold">Live Demo</a>
+                            <a href="https://ahmedraza1234-lab.github.io/WebDev/" target="_blank" class="text-gray-400 hover:text-white text-xl transition-colors"><i class="fab fa-github"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl overflow-hidden group reveal" data-tilt data-tilt-max="10" data-tilt-speed="400" data-tilt-glare="true" data-tilt-max-glare="0.2" style="transition-delay: 300ms;">
+                    <div class="h-48 overflow-hidden relative">
+                        <div class="absolute inset-0 bg-blue-500/20 mix-blend-overlay z-10 group-hover:opacity-0 transition-opacity duration-500"></div>
+                        <img src="https://images.unsplash.com/photo-1618761714954-0b8cd0026356?q=80&w=800&auto=format&fit=crop" alt="Project 3" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                    </div>
+                    <div class="p-6 relative z-20">
+                        <h3 class="text-2xl font-bold mb-2 text-white">Portfolio Template</h3>
+                        <p class="text-gray-400 text-sm mb-6 line-clamp-2">A high-performance, framer-motion style portfolio template for creative professionals.</p>
+                        <div class="flex justify-between items-center">
+                            <a href="https://ahmedraza1234-lab.github.io/WebDev/" target="_blank" class="px-4 py-2 text-sm rounded bg-white/10 hover:bg-neonBlue hover:text-white transition-colors font-semibold">Live Demo</a>
+                            <a href="https://ahmedraza1234-lab.github.io/WebDev/" target="_blank" class="text-gray-400 hover:text-white text-xl transition-colors"><i class="fab fa-github"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-center md:hidden reveal">
+                 <a href="https://ahmedraza1234-lab.github.io/WebDev/" target="_blank" class="text-neonCyan border-b border-neonCyan pb-1">View All on GitHub</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="py-24 relative z-10 bg-black/40">
+        <div class="max-w-7xl mx-auto px-6 md:px-12">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                <div class="reveal">
+                    <h2 class="font-heading text-4xl md:text-5xl font-bold mb-6">Let's <span class="text-gradient">Connect</span></h2>
+                    <p class="text-gray-400 mb-10 text-lg">Ready to build something amazing? Drop me a message or connect through my social channels.</p>
+                    
+                    <div class="space-y-6">
+                        <a href="mailto:contact@ardev.com" class="flex items-center gap-4 group p-4 glass-card rounded-xl hover:border-neonCyan transition-colors w-max pr-8">
+                            <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-neonCyan group-hover:bg-neonCyan group-hover:text-darkBg transition-colors text-xl">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-400">Email Me</div>
+                                <div class="font-semibold text-white">contact@ardev.com</div>
+                            </div>
+                        </a>
+
+                        <a href="#" class="flex items-center gap-4 group p-4 glass-card rounded-xl hover:border-green-400 transition-colors w-max pr-8">
+                            <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-green-400 group-hover:bg-green-400 group-hover:text-darkBg transition-colors text-xl">
+                                <i class="fab fa-whatsapp"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-400">WhatsApp</div>
+                                <div class="font-semibold text-white">+92 300 1234567</div>
+                            </div>
+                        </a>
+                        
+                        <div class="flex gap-4 pt-4">
+                            <a href="https://github.com/ahmedraza1234-lab" target="_blank" class="w-12 h-12 rounded-full glass-card flex items-center justify-center text-xl hover:bg-white hover:text-black transition-all hover:scale-110">
+                                <i class="fab fa-github"></i>
+                            </a>
+                            <a href="#" class="w-12 h-12 rounded-full glass-card flex items-center justify-center text-xl hover:bg-neonBlue hover:text-white transition-all hover:scale-110">
+                                <i class="fab fa-linkedin-in"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-8 rounded-2xl reveal" style="transition-delay: 200ms;">
+                    <form id="contactForm" class="space-y-6">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-2">Name</label>
+                            <input type="text" required class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neonPurple transition-colors" placeholder="John Doe">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-2">Email</label>
+                            <input type="email" required class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neonPurple transition-colors" placeholder="john@example.com">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-2">Message</label>
+                            <textarea required rows="4" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neonPurple transition-colors resize-none" placeholder="Tell me about your project..."></textarea>
+                        </div>
+                        <button type="submit" class="w-full py-4 rounded-lg bg-gradient-to-r from-neonPurple to-neonBlue text-white font-bold hover:shadow-[0_0_20px_rgba(188,19,254,0.4)] transition-all relative overflow-hidden group">
+                            <span class="relative z-10 group-hover:scale-105 inline-block transition-transform">Send Message <i class="fas fa-paper-plane ml-2"></i></span>
+                        </button>
+                        <div id="formSuccess" class="hidden text-center text-neonCyan mt-4 text-sm font-semibold">Message sent successfully!</div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-8 border-t border-white/10 relative z-10 bg-darkBg">
+        <div class="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="font-heading text-xl font-bold text-white">
+                AR <span class="text-gradient">Dev</span>
+            </div>
+            <p class="text-gray-500 text-sm text-center">
+                &copy; <span id="year"></span> AR Dev. All rights reserved.
+            </p>
+            <div class="flex gap-4 text-gray-500">
+                <a href="#" class="hover:text-neonCyan transition-colors"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="hover:text-neonPurple transition-colors"><i class="fab fa-instagram"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/typed.js@2.0.16/dist/typed.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+
+    <script>
+        // 1. Preloader logic
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('loader');
+            loader.style.opacity = '0';
+            setTimeout(() => {
+                loader.style.display = 'none';
+                initSkillBars(); // Animate skill bars after load
+            }, 500);
+        });
+
+        // 2. Custom Cursor Logic
+        const cursorDot = document.getElementById('cursor-dot');
+        const cursorOutline = document.getElementById('cursor-outline');
+        
+        window.addEventListener('mousemove', (e) => {
+            const posX = e.clientX;
+            const posY = e.clientY;
+            
+            cursorDot.style.left = `${posX}px`;
+            cursorDot.style.top = `${posY}px`;
+            
+            cursorOutline.style.left = `${posX}px`;
+            cursorOutline.style.top = `${posY}px`;
+        });
+
+        // 3. Typed.js Initialization
+        new Typed('.typed-text', {
+            strings: [
+                'Creative Frontend Developer', 
+                'Modern Web Experiences', 
+                'Interactive UI/UX Builder'
+            ],
+            typeSpeed: 50,
+            backSpeed: 30,
+            backDelay: 2000,
+            loop: true
+        });
+
+        // 4. Vanilla Tilt Initialization
+        VanillaTilt.init(document.querySelectorAll("[data-tilt]"), {
+            max: 10,
+            speed: 400,
+            glare: true,
+            "max-glare": 0.2,
+        });
+
+        // 5. Scroll Reveal Animation using Intersection Observer
+        const revealElements = document.querySelectorAll('.reveal');
+        
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        revealElements.forEach(el => revealObserver.observe(el));
+
+        // 6. Animate Skill Bars on scroll
+        function initSkillBars() {
+            const skillBars = document.querySelectorAll('.skill-bar');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const targetWidth = entry.target.getAttribute('data-width');
+                        entry.target.style.width = targetWidth;
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.5 });
+            
+            skillBars.forEach(bar => observer.observe(bar));
+        }
+
+        // 7. Sticky Navbar Glass Effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('glass-card');
+                navbar.classList.remove('py-4');
+                navbar.classList.add('py-2');
+            } else {
+                navbar.classList.remove('glass-card');
+                navbar.classList.add('py-4');
+                navbar.classList.remove('py-2');
+            }
+        });
+
+        // 8. Contact Form Mock Validation
+        const contactForm = document.getElementById('contactForm');
+        const formSuccess = document.getElementById('formSuccess');
+        
+        contactForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = contactForm.querySelector('button');
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            
+            // Simulate network request
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                contactForm.reset();
+                formSuccess.classList.remove('hidden');
+                setTimeout(() => formSuccess.classList.add('hidden'), 5000);
+            }, 1500);
+        });
+
+        // 9. Set current year in footer
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
